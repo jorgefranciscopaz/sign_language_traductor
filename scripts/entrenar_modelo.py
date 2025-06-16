@@ -1,0 +1,1 @@
+#Entrena el modelo con los CSV en /datos

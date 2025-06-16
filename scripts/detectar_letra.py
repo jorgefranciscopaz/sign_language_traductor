@@ -1,0 +1,1 @@
+#Usa la camara y el modelo para detectar letras
