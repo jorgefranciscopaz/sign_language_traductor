@@ -4,11 +4,14 @@ import csv
 import os
 
 # Nombre de la letra que vas a grabar (CAMBIA ESTO antes de correr)
-letra = 'A'
+letra = 'B'
 
-# Crear directorio si no existe
-if not os.path.exists("../datos"):
-    os.makedirs("../datos")
+import os
+
+# Crear carpeta "datos" si no existe
+if not os.path.exists("datos"):
+    os.makedirs("datos")
+
 
 archivo_csv = f"datos/{letra}.csv"
 
