@@ -1,8 +1,17 @@
-#Captura landmarks de una letra
+# scripts/capturar_datos.py
+
 import cv2
 import mediapipe as mp
 import csv
+
+import sys
 import os
+
+# Agrega la raíz del proyecto al sys.path para importar utils
+ruta_base = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(ruta_base, ".."))
+
+from utils.procesar_landmarks import normalizar_landmarks
 
 # === CONFIGURACIÓN ===
 letra = input("¿Qué letra estás grabando? (ej. A, B, C...): ").upper()
@@ -39,10 +48,17 @@ with open(archivo_csv, mode='w', newline='') as f:
                 for lm in hand_landmarks.landmark:
                     landmarks.append(lm.x)
                     landmarks.append(lm.y)
-                landmarks.append(letra)
-                writer.writerow(landmarks)
+
+                # === Normalizar landmarks antes de guardar ===
+                landmarks_norm = normalizar_landmarks(landmarks)
+                row = list(landmarks_norm)
+                row.append(letra)
+                writer.writerow(row)
+
+                # Dibujar la mano en pantalla
                 mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
+        # Mostrar info
         cv2.putText(frame, f'Recogiendo letra: {letra}', (10, 30),
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
         cv2.imshow("Captura de Datos - Lenguaje de Señas", frame)
