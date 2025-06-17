@@ -3,7 +3,7 @@
 import pandas as pd
 import numpy as np
 import os
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import cross_validate
 from sklearn.metrics import accuracy_score
 from sklearn.neural_network import MLPClassifier
 import joblib
@@ -25,7 +25,6 @@ for archivo in os.listdir(ruta_datos):
             data.append(df.iloc[i, :-1])
             labels.append(df.iloc[i, -1])
 
-# Convertir a arrays
 X = np.array(data, dtype=np.float32)
 y = np.array(labels)
 
@@ -41,26 +40,24 @@ if len(np.unique(y)) < 2:
 if len(X) < 20:
     print(f"[ADVERTENCIA] Tienes muy pocos datos ({len(X)} muestras). El modelo puede ser poco confiable.")
 
-# === División entrenamiento/prueba ===
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# === Inicializar modelo base ===
+modelo_base = MLPClassifier(hidden_layer_sizes=(128, 64), max_iter=1000, random_state=42, verbose=False)
 
-# === Inicializar modelo MLP ===
-modelo = MLPClassifier(hidden_layer_sizes=(128, 64), max_iter=1000, random_state=42)
+# === Validación cruzada con retorno de modelos entrenados ===
+print("[INFO] Ejecutando validación cruzada con retorno de modelos...")
+resultados = cross_validate(modelo_base, X, y, cv=5, return_estimator=True, return_train_score=True)
 
-# === Validación cruzada (opcional pero informativa) ===
-print("[INFO] Ejecutando validación cruzada...")
-scores = cross_val_score(modelo, X, y, cv=5)
-print(f"[INFO] Precisión promedio en CV (5 folds): {scores.mean():.3f} (+/- {scores.std():.3f})")
+# === Precisión por fold
+precisiones = resultados["test_score"]
+for i, score in enumerate(precisiones):
+    print(f"[INFO] Fold {i+1}: Precisión = {score:.3f}")
 
-# === Entrenamiento final con todos los datos ===
-modelo.fit(X, y)
+# === Mejor modelo (mayor precisión)
+indice_mejor = np.argmax(precisiones)
+mejor_modelo = resultados["estimator"][indice_mejor]
+print(f"[INFO] Mejor modelo seleccionado del fold {indice_mejor + 1} con precisión = {precisiones[indice_mejor]:.3f}")
 
-# === Evaluación rápida con datos separados
-y_pred = modelo.predict(X_test)
-precision = accuracy_score(y_test, y_pred)
-print(f"[INFO] Precisión en conjunto de prueba: {precision:.2f}")
-
-# === Guardar modelo ===
+# === Guardar modelo
 modelo_path = os.path.join(ruta_modelos, "sign_language_model.pkl")
-joblib.dump(modelo, modelo_path)
+joblib.dump(mejor_modelo, modelo_path)
 print(f"[INFO] Modelo guardado en: {modelo_path}")
