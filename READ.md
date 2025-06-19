@@ -1,22 +1,30 @@
-# 🧠 Traductor de Lenguaje de Señas a Texto con IA
+# 🧠 Traductor Inteligente de Lenguaje de Señas a Texto
 
-Este proyecto permite capturar letras del lenguaje de señas usando la cámara, entrenar un modelo de inteligencia artificial y traducir los gestos en frases que se envían automáticamente a Firebase Realtime Database.
+Este proyecto permite capturar letras del lenguaje de señas mediante una cámara, entrenar un modelo de inteligencia artificial y traducir gestos en frases que son enviadas automáticamente a Firebase Realtime Database.
 
 ---
 
-## 📁 Estructura del Proyecto
+## 📂 Estructura del Proyecto
 
 ```
-/datos/                   # Datos capturados (archivos CSV por letra)
-/modelos/                 # Modelos entrenados (.pkl)
-/scripts/
-  capturar_datos.py       # Captura datos de una letra
-  entrenar_modelo.py      # Entrena el modelo con los datos
-  detectar_letra.py       # Detecta letras en tiempo real y arma frases
-  procesar_landmarks.py   # Normaliza landmarks
+/detectar_letras/
+├── /datos/                    # Datos capturados (CSV por letra)
+├── /modelos/                  # Modelos entrenados (.pkl)
+├── /scripts/
+│   ├── capturar_datos.py      # Captura landmarks de una letra
+│   ├── detectar_letra.py      # Detecta letras y arma frases
+│   ├── procesar_landmarks.py  # Normaliza landmarks
+│   └── venv-mediapipe/        # Entorno virtual (detección)
+
+/entrenar_modelo/
+└── entrenar_modelo.py         # Entrena el modelo de clasificación
+
 /enviar_firebase/
-  enviar_a_firebase.py    # Envía las frases a Firebase
-  config/firebase_key.json# Clave de acceso al Realtime Database
+├── enviar_a_firebase.py       # Envía frases al Realtime Database
+├── config/firebase_key.json   # Credencial de acceso a Firebase
+└── venv-firebase/             # Entorno virtual para conexión Firebase
+
+run_app.py                     # Ejecuta simultáneamente detección y envío
 ```
 
 ---
@@ -31,86 +39,96 @@ pip install opencv-python mediapipe joblib firebase-admin scikit-learn pandas nu
 
 ---
 
-## 🚀 ¿Cómo usar el sistema?
+## 🚀 ¿Cómo utilizar el sistema?
 
-### 1. Capturar Datos
+### 1. Captura de Datos
 
-Ejecuta el siguiente script para guardar puntos de la mano asociados a una letra:
+Ejecuta:
 
 ```bash
-python scripts/capturar_datos.py
+python detectar_letras/scripts/capturar_datos.py
 ```
 
-- Introduce la letra que estás capturando (ej: `A`).
-- Usa la cámara para grabar los gestos.
-- Presiona `q` para finalizar.
+- Ingresa la letra que estás capturando (ejemplo: `A`).
+- El sistema iniciará la cámara y capturará los puntos de referencia de la mano.
+- Presiona `q` para finalizar la captura.
 - Se generará un archivo `A.csv` en la carpeta `/datos`.
 
-📌 Repite este proceso para varias letras.
+📌 Repite este proceso para cada letra que desees reconocer.
 
 ---
 
-### 2. Entrenar el Modelo
+### 2. Entrenamiento del Modelo
+
+Ejecuta:
 
 ```bash
-python scripts/entrenar_modelo.py
+python entrenar_modelo/entrenar_modelo.py
 ```
 
-Este script:
-- Carga los `.csv` desde `/datos/`.
-- Entrena una red neuronal `MLPClassifier`.
-- Realiza validación cruzada (`cv=5`).
-- Guarda el mejor modelo en `/modelos/sign_language_model.pkl`.
+- Carga automáticamente los archivos CSV de `/datos/`.
+- Entrena un clasificador neuronal (`MLPClassifier`) con validación cruzada (`cv=5`).
+- Guarda el modelo con mayor precisión en `/modelos/sign_language_model.pkl`.
 
 ---
 
-### 3. Detectar Letras y Formar Frases
+### 3. Detección en Tiempo Real y Construcción de Frases
+
+Ejecuta:
 
 ```bash
-python scripts/detectar_letra.py
+python detectar_letras/scripts/detectar_letra.py
 ```
 
-- Usa la cámara para detectar letras.
-- Forma frases automáticamente.
+- Detecta automáticamente letras a partir de los movimientos de la mano.
+- Construye una frase a partir de letras reconocidas de forma estable.
 - Controles disponibles:
-  - `Espacio`: Agrega un espacio.
-  - `Backspace`: Borra la última letra.
-  - `Enter`: Envía la frase a Firebase.
+  - `Espacio`: agrega un espacio.
+  - `Backspace`: elimina el último carácter.
+  - `Enter`: envía la frase a Firebase.
 
 ---
 
-## 🔗 Firebase
+## 🔗 Configuración de Firebase
 
-1. Coloca tu archivo `firebase_key.json` dentro de:  
-   `/enviar_firebase/config/firebase_key.json`
+📌 **Importante:** esta configuración depende de cada usuario. Deberás crear tu propia instancia de Firebase Realtime Database y generar tus credenciales.
 
-2. Asegúrate de que la URL de la base de datos sea correcta en el archivo:  
-   `enviar_firebase/enviar_a_firebase.py`
+1. Coloca tu archivo `firebase_key.json` dentro de:
 
-3. La frase se enviará a la rama `frases/` en el Realtime Database.
+```
+/enviar_firebase/config/firebase_key.json
+```
+
+2. Edita la URL del Realtime Database dentro de:
+
+```
+/enviar_firebase/enviar_a_firebase.py
+```
+
+3. Las frases se almacenarán en la rama `frases/` del Realtime Database.
 
 ---
 
-## 🧩 ¿Cómo funciona?
+## ⚙️ Funcionamiento Interno
 
-- MediaPipe detecta los puntos de la mano (landmarks).
-- Se normalizan para hacerlos independientes del tamaño/posición.
-- Se predice la letra usando un modelo entrenado.
-- Se forma una frase con letras estables.
-- La frase se muestra en pantalla y se puede enviar a Firebase.
+- MediaPipe detecta los landmarks (puntos clave) de la mano en tiempo real.
+- Los puntos se normalizan para hacer el modelo robusto ante escalas o posiciones distintas.
+- El modelo clasifica la letra más probable.
+- Se estabilizan predicciones para evitar errores.
+- Se construyen frases completas que pueden enviarse directamente a Firebase.
 
 ---
 
 ## ⚠️ Recomendaciones
 
-- Entrena con muchas muestras por letra para mejor precisión.
-- Asegúrate de tener buena iluminación y una cámara clara.
-- Nunca subas tu clave `firebase_key.json` a repositorios públicos.
+- Captura múltiples muestras por letra para mejorar la precisión.
+- Usa buena iluminación y posición central de la mano ante la cámara.
+- **Nunca subas tu archivo `firebase_key.json` a repositorios públicos.**
 
 ---
 
 ## 📸 Créditos
 
-- MediaPipe (detección de manos)
-- Scikit-learn (modelo MLP)
-- Firebase Realtime Database (envío de frases)
+- **MediaPipe** – Detección de manos en tiempo real.
+- **Scikit-learn** – Clasificador neuronal (MLP).
+- **Firebase Realtime Database** – Almacenamiento remoto de frases.
